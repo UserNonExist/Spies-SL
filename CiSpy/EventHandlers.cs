@@ -323,7 +323,7 @@ public class EventHandlers
             return;
         
 
-        if (ev.Player.SessionVariables["ShootedAsSpy"] is bool shooted && shooted)
+        if (ev.Player.SessionVariables["ShootedAsSpy"] is bool shooted && !shooted)
         {
             TurnSpyRole(ev.Player);
             ev.Player.SessionVariables["ShootedAsSpy"] = true;
@@ -331,13 +331,11 @@ public class EventHandlers
             {
                 ev.Projectile.PreviousOwner = ev.Player;
             });
-            return;
         }
         
         if (ev.Player.SessionVariables["Damagable"] is bool damagable && !damagable)
         {
             ev.Player.SessionVariables["Damagable"] = true;
-            return;
         }
     }
 
