@@ -1,12 +1,20 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using CiSpy.Enums;
+using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
+using Exiled.API.Features.Core.Generic;
+using Exiled.API.Features.DamageHandlers;
+using Exiled.Events.EventArgs.Map;
 using Exiled.Events.EventArgs.Player;
 using Exiled.Events.EventArgs.Server;
+using InventorySystem.Items.Firearms.BasicMessages;
+using JetBrains.Annotations;
 using MEC;
 using PlayerRoles;
+using PlayerStatsSystem;
+using PluginAPI.Events;
 using Respawning;
 using UnityEngine;
 
@@ -14,36 +22,53 @@ namespace CiSpy;
 
 public class EventHandlers
 {
-    public List<Player> ChaosSpies = new List<Player>();
-    public List<Player> MtfSpies = new List<Player>();
     public List<CoroutineHandle> CoroutineHandles = new List<CoroutineHandle>();
-
-    public bool ShowHitmarker;
-
+    public List<Player> SpyList = new List<Player>();
 
     public void OnRoundRestart()
     {
-        Server.FriendlyFire = false;
-        ShowHitmarker = false;
-        ChaosSpies.Clear();
-        MtfSpies.Clear();
-        
         foreach (var cHandles in CoroutineHandles)
         {
             Timing.KillCoroutines(cHandles);
-            CoroutineHandles.Remove(cHandles);
+        }
+        
+        CoroutineHandles.Clear();
+        SpyList.Clear();
+    }
+
+    public void OnLeft(LeftEventArgs ev)
+    {
+        if (SpyList.Contains(ev.Player))
+        {
+            SpyList.Remove(ev.Player);
         }
     }
-    
-    public void OnRoundStarted()
+
+    public void OnChangingRole(ChangingRoleEventArgs ev)
     {
-        ShowHitmarker = false;
+        if (ev.Player.SessionVariables["DoNotUpdate"] is bool DoNotUpdate && DoNotUpdate)
+        {
+            ev.Player.SessionVariables["DoNotUpdate"] = false;
+            return;
+        }
+        
+        if (ev.Player.SessionVariables["IsSpy"] is bool IsSpy && IsSpy)
+        {
+            ev.Player.SessionVariables["IsSpy"] = false;
+            ev.Player.SessionVariables["Damagable"] = true;
+            ev.Player.SessionVariables["ShootedAsSpy"] = false;
+            ev.Player.SessionVariables["CancellationToken"] = true;
+            SpyList.Remove(ev.Player);
+        }
     }
     
     public void OnVerified(VerifiedEventArgs ev)
     {
         ev.Player.SessionVariables["IsSpy"] = false;
         ev.Player.SessionVariables["Damagable"] = true;
+        ev.Player.SessionVariables["ShootedAsSpy"] = false;
+        ev.Player.SessionVariables["CancellationToken"] = false;
+        ev.Player.SessionVariables["DoNotUpdate"] = false;
     }
     
     public void OnRespawningTeam(RespawningTeamEventArgs ev)
@@ -118,29 +143,24 @@ public class EventHandlers
 
     public void SpawnChaosSpy(Player player)
     {
-        CoroutineHandles.Add(Timing.RunCoroutine(HitmarkerTimer(player, Entrypoint.Instance.Config.HitmarkerDuration)));
+        player.SessionVariables["DoNotUpdate"] = true;
+        SpyList.Add(player);
         player.SessionVariables["IsSpy"] = true;
         CoroutineHandles.Add(Timing.RunCoroutine(DamagableTimer(player, Entrypoint.Instance.Config.UnDamagableDuration)));
-        player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
-        Timing.CallDelayed(0.1f, () =>
-        {
-            player.ChangeAppearance(RoleTypeId.NtfPrivate);
-            player.ShowHint(Entrypoint.Instance.Translation.ChaosSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
-        });
+        CoroutineHandles.Add(Timing.RunCoroutine(ShootedSpyTimer(player, Entrypoint.Instance.Config.SpyCheckDuration)));
+        player.Role.Set(RoleTypeId.NtfPrivate, RoleSpawnFlags.None);
+        player.ShowHint(Entrypoint.Instance.Translation.ChaosSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
     }
     
     public void SpawnNtfSpy(Player player)
     {
-        CoroutineHandles.Add(Timing.RunCoroutine(HitmarkerTimer(player, Entrypoint.Instance.Config.HitmarkerDuration)));
+        player.SessionVariables["DoNotUpdate"] = true;
+        SpyList.Add(player);
         player.SessionVariables["IsSpy"] = true;
         CoroutineHandles.Add(Timing.RunCoroutine(DamagableTimer(player, Entrypoint.Instance.Config.UnDamagableDuration)));
-        player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
-        Timing.CallDelayed(0.1f, () =>
-        {
-            player.ChangeAppearance(RoleTypeId.ChaosRifleman);
-            player.ShowHint(Entrypoint.Instance.Translation.MtfSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
-            
-        });
+        CoroutineHandles.Add(Timing.RunCoroutine(ShootedSpyTimer(player, Entrypoint.Instance.Config.SpyCheckDuration)));
+        player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
+        player.ShowHint(Entrypoint.Instance.Translation.MtfSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
     }
 
     public void OnDying(DyingEventArgs ev)
@@ -149,17 +169,94 @@ public class EventHandlers
             return;
         
         ev.Player.SessionVariables["IsSpy"] = false;
-        ev.Player.SessionVariables["Damagable"] = true;
+        ev.Player.SessionVariables["DoNotUpdate"] = true;
 
-        switch (ev.Player.Role.Type)
+        if (ev.Player.SessionVariables["ShootedAsSpy"] is bool shotedAsSpy && !shotedAsSpy)
         {
-            case RoleTypeId.ChaosRifleman:
-                ev.Player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
-                ev.Player.Kill(ev.DamageHandler);
+            switch (ev.Player.Role.Type)
+            {
+                case RoleTypeId.NtfPrivate:
+                    ev.Player.Role.Set(RoleTypeId.ChaosConscript, RoleSpawnFlags.None);
+                    ev.Player.Kill(ev.DamageHandler);
+                    break;
+                case RoleTypeId.ChaosRifleman:
+                    ev.Player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
+                    ev.Player.Kill(ev.DamageHandler);
+                    break;
+            }
+        }
+        else
+        {
+            switch (ev.Player.Role.Type)
+            {
+                case RoleTypeId.ChaosConscript:
+                    ev.Player.Role.Set(RoleTypeId.ChaosConscript, RoleSpawnFlags.None);
+                    ev.Player.Kill(ev.DamageHandler);
+                    break;
+                case RoleTypeId.NtfSpecialist:
+                    ev.Player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
+                    ev.Player.Kill(ev.DamageHandler);
+                    break;
+            }
+        }
+        
+        ev.Player.SessionVariables["ShootedAsSpy"] = false;
+        ev.Player.SessionVariables["Damagable"] = true;
+        SpyList.Remove(ev.Player);
+    }
+
+    public void OnShooting(ShootingEventArgs ev)
+    {
+        if (ev.Player.IsScp)
+            return;
+        
+        
+        if (ev.Player.SessionVariables["IsSpy"] is bool isSpy && !isSpy)
+            return;
+
+        if (ev.Player.SessionVariables["ShootedAsSpy"] is bool shooted && shooted)
+            return;
+
+        Player player = ev.Player;
+        
+        if (player == null)
+            return;
+        
+        TurnSpyRole(player);
+        player.SessionVariables["ShootedAsSpy"] = true;
+    }
+
+    public void TurnSpyRole(Player player)
+    {
+        player.SessionVariables["DoNotUpdate"] = true;
+        Vector3 lastPos = player.Position;
+        
+        
+        Quaternion lastRot = player.Rotation;
+        Quaternion lastPlayerCamRot = player.CameraTransform.rotation;
+        
+        switch (player.Role.Type)
+        {
+            case RoleTypeId.NtfPrivate:
+                player.Role.Set(RoleTypeId.ChaosConscript, RoleSpawnFlags.None);
+                player.Position = lastPos;
+                Timing.CallDelayed(0.1f, () =>
+                {
+                    player.ChangeAppearance(RoleTypeId.NtfPrivate);
+                    player.Rotation = lastRot;
+                    player.CameraTransform.rotation = lastPlayerCamRot;
+                });
                 break;
-            case RoleTypeId.NtfSpecialist:
-                ev.Player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
-                ev.Player.Kill(ev.DamageHandler);
+            
+            case RoleTypeId.ChaosRifleman:
+                player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
+                player.Position = lastPos;
+                Timing.CallDelayed(0.1f, () =>
+                {
+                    player.ChangeAppearance(RoleTypeId.ChaosRifleman);
+                    player.Rotation = lastRot;
+                    player.CameraTransform.rotation = lastPlayerCamRot;
+                });
                 break;
         }
     }
@@ -171,8 +268,34 @@ public class EventHandlers
         
         if (ev.NewTarget.SessionVariables["IsSpy"] is bool isSpy && isSpy)
         {
-            ev.Player.ClearBroadcasts();
-            ev.Player.Broadcast(2, Entrypoint.Instance.Translation.SpectatingSpyMessage);
+            if (ev.NewTarget.SessionVariables["ShootedAsSpy"] is bool shooted && shooted)
+            {
+                switch (ev.NewTarget.Role.Type)
+                {
+                    case RoleTypeId.ChaosConscript:
+                        ev.Player.ClearBroadcasts();
+                        ev.Player.Broadcast(2, Entrypoint.Instance.Translation.SpectatingSpyMessage.Replace("%role%", Entrypoint.Instance.Translation. ChaosSpyName));
+                        break;
+                    case RoleTypeId.NtfSpecialist:
+                        ev.Player.ClearBroadcasts();
+                        ev.Player.Broadcast(2, Entrypoint.Instance.Translation.SpectatingSpyMessage.Replace("%role%", Entrypoint.Instance.Translation. NtfSpyName));
+                        break;
+                }
+            }
+            else
+            {
+                switch (ev.NewTarget.Role.Type)
+                {
+                    case RoleTypeId.ChaosRifleman:
+                        ev.Player.ClearBroadcasts();
+                        ev.Player.Broadcast(2, Entrypoint.Instance.Translation.SpectatingSpyMessage.Replace("%role%", Entrypoint.Instance.Translation. NtfSpyName));
+                        break;
+                    case RoleTypeId.NtfPrivate:
+                        ev.Player.ClearBroadcasts();
+                        ev.Player.Broadcast(2, Entrypoint.Instance.Translation.SpectatingSpyMessage.Replace("%role%", Entrypoint.Instance.Translation. ChaosSpyName));
+                        break;
+                }
+            }
         }
     }
     
@@ -180,20 +303,42 @@ public class EventHandlers
     {
         if (ev.Player.SessionVariables["IsSpy"] is bool isSpy && isSpy)
         {
-            ev.Player.ShowHint(Entrypoint.Instance.Translation.CannotCuffMessage);
+            ev.Player.ShowHint(Entrypoint.Instance.Translation.CannotCuffMessage, 5f);
             ev.IsAllowed = false;
         }
+        
+        if (ev.Target.SessionVariables["IsSpy"] is bool isSpy2 && isSpy2 && ev.Target.SessionVariables["ShootedAsSpy"] is bool shooted && !shooted)
+        {
+            if (ev.Player.Role.Side != ev.Target.Role.Side)
+            {
+                ev.Player.ShowHint(Entrypoint.Instance.Translation.FriendlyCuffSpyMessage, 5f);
+                ev.IsAllowed = false;
+            }
+        }
     }
-    
-    public void OnShooting(ShootingEventArgs ev)
+
+    public void OnThrownProjectile(ThrownProjectileEventArgs ev)
     {
-        if (!ShowHitmarker)
+        if (ev.Player.SessionVariables["IsSpy"] is bool isSpy && !isSpy)
             return;
         
-        if (ev.Player.IsScp)
+
+        if (ev.Player.SessionVariables["ShootedAsSpy"] is bool shooted && shooted)
+        {
+            TurnSpyRole(ev.Player);
+            ev.Player.SessionVariables["ShootedAsSpy"] = true;
+            Timing.CallDelayed(0.2f, () =>
+            {
+                ev.Projectile.PreviousOwner = ev.Player;
+            });
             return;
+        }
         
-        ev.Player.ShowHitMarker();
+        if (ev.Player.SessionVariables["Damagable"] is bool damagable && !damagable)
+        {
+            ev.Player.SessionVariables["Damagable"] = true;
+            return;
+        }
     }
 
     public void OnHurting(HurtingEventArgs ev)
@@ -206,21 +351,41 @@ public class EventHandlers
         
         if (ev.Attacker.IsScp || ev.Player.IsScp)
             return;
-
-        if (ev.Attacker.Role.Side == ev.Player.Role.Side && ShowHitmarker)
-        {
-            ev.IsAllowed = false;
-        }
         
         bool attackerIsSpy = ev.Attacker.SessionVariables["IsSpy"] is bool isSpy && isSpy;
         bool victimIsSpy = ev.Player.SessionVariables["IsSpy"] is bool isSpy2 && isSpy2;
         bool attackerDamagable = ev.Attacker.SessionVariables["Damagable"] is bool damagable && damagable;
         bool victimDamagable = ev.Player.SessionVariables["Damagable"] is bool damagable2 && damagable2;
+        bool victimShootedAsSpy = ev.Player.SessionVariables["ShootedAsSpy"] is bool shootedAsSpy && shootedAsSpy;
+        
 
         if (attackerIsSpy && !attackerDamagable)
         {
             ev.Attacker.SessionVariables["Damagable"] = true;
             return;
+        }
+
+        if (victimIsSpy && !victimShootedAsSpy)
+        {
+            switch (ev.Player.Role.Type)
+            {
+                case RoleTypeId.NtfPrivate:
+                    if (ev.Attacker.Role.Side == Side.ChaosInsurgency)
+                    {
+                        ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage, 5f);
+                        ev.IsAllowed = false;
+                    }
+                    break;
+                case RoleTypeId.ChaosRifleman:
+                    if (ev.Attacker.Role.Side == Side.Mtf)
+                    {
+                        ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage, 5f);
+                        ev.IsAllowed = false;
+                    }
+                    break;
+            }
+            return;
+            
         }
         
         if (victimIsSpy && !victimDamagable)
@@ -229,26 +394,6 @@ public class EventHandlers
             return;
         }
     }
-
-    public IEnumerator<float> HitmarkerTimer(Player player, int time)
-    {
-        
-        ShowHitmarker = true;
-        
-        while (time > 0)
-        {
-            if (player.SessionVariables["Damagable"] is bool isDamagable && isDamagable)
-            {
-                ShowHitmarker = false;
-                yield break;
-            }
-
-            time--;
-            yield return Timing.WaitForSeconds(1f);
-        }
-        
-        ShowHitmarker = false;
-    }
     
     public IEnumerator<float> DamagableTimer(Player player, int time)
     {
@@ -256,16 +401,57 @@ public class EventHandlers
         
         while (time > 0)
         {
+            if (player.SessionVariables["CancellationToken"] is bool token && token)
+                yield break;
+            
             if (player.SessionVariables["Damagable"] is bool isDamagable && isDamagable)
             {
                 player.ShowHint(Entrypoint.Instance.Translation.NowDamagableMessage, 5f);
                 yield break;
             }
+            
+            if (player.IsDead)
+                yield break;
+            
             time--;
             yield return Timing.WaitForSeconds(1f);
         }
         
         player.ShowHint(Entrypoint.Instance.Translation.NowDamagableMessage, 5f);
         player.SessionVariables["Damagable"] = true;
+    }
+    
+    public IEnumerator<float> ShootedSpyTimer(Player player, int time)
+    {
+        player.SessionVariables["ShootedAsSpy"] = false;
+
+        while (time > 0)
+        {
+            if (player.SessionVariables["CancellationToken"] is bool token && token)
+            {
+                player.SessionVariables["CancellationToken"] = false;
+                yield break;
+            }
+            
+            
+            if (player.SessionVariables["ShootedAsSpy"] is bool shootedAsSpy && shootedAsSpy)
+            {
+                player.Broadcast(5, Entrypoint.Instance.Translation.FirstShootMessage);
+                yield break;
+            }
+            
+            if (player.IsDead)
+                yield break;
+            
+            if (time < (Entrypoint.Instance.Config.SpyCheckDuration - Entrypoint.Instance.Config.SpawnMessageDuration))
+                player.ShowHint(Entrypoint.Instance.Translation.SpawnProtectMessage.Replace("%time%", time.ToString()), 1f);
+
+            time--;
+            yield return Timing.WaitForSeconds(1f);
+        }
+        
+        TurnSpyRole(player);
+        player.Broadcast(5, Entrypoint.Instance.Translation.FirstShootMessage);
+        player.SessionVariables["ShootedAsSpy"] = true;
     }
 }

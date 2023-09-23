@@ -16,8 +16,10 @@ public class Config : IConfig
     public int AdditionalSpawnChance { get; set; } = 2;
     [Description("Duration of the spawn message.")]
     public float SpawnMessageDuration { get; set; } = 20f;
-    [Description("Duration of the hitmarker always showing.")]
-    public int HitmarkerDuration { get; set; } = 120;
     [Description("Duration of spy having a grace period.")]
     public int UnDamagableDuration { get; set; } = 120;
+    [Description("Duration of player cannot spycheck.")]
+    public int SpyCheckDuration { get; set; } = 75;
+    [Description("Whether NTF Captain can spawn with a spy checking tool.")]
+    public bool NtfCaptainCanSpawnWithSpyCheck { get; set; } = true;
 }
