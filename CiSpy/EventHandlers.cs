@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using CiSpy.Enums;
 using Exiled.API.Enums;
@@ -17,6 +18,7 @@ using PlayerStatsSystem;
 using PluginAPI.Events;
 using Respawning;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 namespace CiSpy;
 
@@ -46,19 +48,26 @@ public class EventHandlers
 
     public void OnChangingRole(ChangingRoleEventArgs ev)
     {
-        if (ev.Player.SessionVariables["DoNotUpdate"] is bool DoNotUpdate && DoNotUpdate)
+        try
         {
-            ev.Player.SessionVariables["DoNotUpdate"] = false;
-            return;
+            if (ev.Player.SessionVariables["DoNotUpdate"] is bool DoNotUpdate && DoNotUpdate)
+            {
+                ev.Player.SessionVariables["DoNotUpdate"] = false;
+                return;
+            }
+
+            if (ev.Player.SessionVariables["IsSpy"] is bool IsSpy && IsSpy)
+            {
+                ev.Player.SessionVariables["IsSpy"] = false;
+                ev.Player.SessionVariables["Damagable"] = true;
+                ev.Player.SessionVariables["ShootedAsSpy"] = false;
+                ev.Player.SessionVariables["CancellationToken"] = true;
+                SpyList.Remove(ev.Player);
+            }
         }
-        
-        if (ev.Player.SessionVariables["IsSpy"] is bool IsSpy && IsSpy)
+        catch (Exception e)
         {
-            ev.Player.SessionVariables["IsSpy"] = false;
-            ev.Player.SessionVariables["Damagable"] = true;
-            ev.Player.SessionVariables["ShootedAsSpy"] = false;
-            ev.Player.SessionVariables["CancellationToken"] = true;
-            SpyList.Remove(ev.Player);
+            // ignored
         }
     }
     

@@ -51,12 +51,28 @@ public class SpyDetector : CustomItem
 
     public void OnChangingRole(ChangingRoleEventArgs ev)
     {
-        if (ev.NewRole == RoleTypeId.NtfCaptain && !(ev.SpawnFlags == RoleSpawnFlags.AssignInventory || ev.SpawnFlags == RoleSpawnFlags.All))
+        if (ev.NewRole == RoleTypeId.NtfCaptain)
         {
-            Timing.CallDelayed(0.5f, () =>
+            if (ev.Reason == SpawnReason.Respawn|| (ev.Reason == SpawnReason.ForceClass && 
+                (ev.SpawnFlags == RoleSpawnFlags.AssignInventory || ev.SpawnFlags == RoleSpawnFlags.All)))
             {
-                TryGive(ev.Player, Id);
-            });
+                Timing.CallDelayed(0.5f, () =>
+                {
+                    TryGive(ev.Player, Id);
+                });
+            }
+        }
+        
+        if (ev.NewRole == RoleTypeId.ChaosMarauder)
+        {
+            if (ev.Reason == SpawnReason.Respawn || (ev.Reason == SpawnReason.ForceClass && 
+                (ev.SpawnFlags == RoleSpawnFlags.AssignInventory || ev.SpawnFlags == RoleSpawnFlags.All)))
+            {
+                Timing.CallDelayed(0.5f, () =>
+                {
+                    TryGive(ev.Player, Id);
+                });
+            }
         }
     }
 
@@ -73,61 +89,65 @@ public class SpyDetector : CustomItem
             ev.IsAllowed = false;
             return;
         }
-        
-        if (target.Role.Type != RoleTypeId.ChaosConscript || target.Role.Type != RoleTypeId.NtfSpecialist || 
-            target.Role.Type != RoleTypeId.NtfPrivate || target.Role.Type != RoleTypeId.ChaosRifleman)
+
+        if (target.Role.Type == RoleTypeId.NtfPrivate || target.Role.Type == RoleTypeId.NtfSpecialist ||
+            target.Role.Type == RoleTypeId.ChaosConscript ||target.Role.Type == RoleTypeId.ChaosRifleman)
+        {
+            if (!Entrypoint.EventHandlers.SpyList.Contains(target))
+            {
+                Timing.CallDelayed(1.5f, () =>
+                {
+                    ev.Player.ShowHint($"ผลการทดสอบ: ไม่ใช่สปาย\n{target.Nickname}", 5f);
+                });
+                return;
+            }
+
+            if (target.SessionVariables["ShootedAsSpy"].Equals(true))
+            {
+                Timing.CallDelayed(1.5f, () =>
+                {
+                    switch (target.Role.Type)
+                    {
+                        case RoleTypeId.ChaosConscript:
+                            ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.ChaosSpyName}\n{target.Nickname}", 5f);
+                            target.SessionVariables["Damagable"] = true;
+                            break;
+                        case RoleTypeId.NtfSpecialist:
+                            ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.NtfSpyName}\n{target.Nickname}", 5f);
+                            target.SessionVariables["Damagable"] = true;
+                            break;
+                    }
+                });
+            }
+            else
+            {
+                Timing.CallDelayed(1.5f, () =>
+                {
+                    switch (target.Role.Type)
+                    {
+                        case RoleTypeId.NtfPrivate:
+                            ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.ChaosSpyName}\n{target.Nickname}", 5f);
+                            Entrypoint.EventHandlers.TurnSpyRole(target);
+                            target.SessionVariables["ShootedAsSpy"] = true;
+                            target.SessionVariables["Damagable"] = true;
+                            break;
+                        case RoleTypeId.ChaosRifleman:
+                            ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.NtfSpyName}\n{target.Nickname}", 5f);
+                            Entrypoint.EventHandlers.TurnSpyRole(target);
+                            target.SessionVariables["ShootedAsSpy"] = true;
+                            target.SessionVariables["Damagable"] = true;
+                            break;
+                    }
+                });
+            }
+        }
+        else
         {
             ev.Player.ShowHint("ไม่พบเป้าหมาย", 5f);
             ev.IsAllowed = false;
             return;
         }
         
-        if (target.SessionVariables["IsSpy"].Equals(false))
-        {
-            Timing.CallDelayed(1.5f, () =>
-            {
-                ev.Player.ShowHint($"ผลการทดสอบ: ไม่ใช่สปาย\n{target.Nickname}", 5f);
-            });
-        }
-
-        if (target.SessionVariables["ShootedAsSpy"].Equals(true))
-        {
-            Timing.CallDelayed(1.5f, () =>
-            {
-                switch (target.Role.Type)
-                {
-                    case RoleTypeId.ChaosConscript:
-                        ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.ChaosSpyName}\n{target.Nickname}", 5f);
-                        target.SessionVariables["Damagable"] = true;
-                        break;
-                    case RoleTypeId.NtfSpecialist:
-                        ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.NtfSpyName}\n{target.Nickname}", 5f);
-                        target.SessionVariables["Damagable"] = true;
-                        break;
-                }
-            });
-        }
-        else
-        {
-            Timing.CallDelayed(1.5f, () =>
-            {
-                switch (target.Role.Type)
-                {
-                    case RoleTypeId.NtfPrivate:
-                        ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.ChaosSpyName}\n{target.Nickname}", 5f);
-                        Entrypoint.EventHandlers.TurnSpyRole(target);
-                        target.SessionVariables["ShootedAsSpy"] = true;
-                        target.SessionVariables["Damagable"] = true;
-                        break;
-                    case RoleTypeId.ChaosRifleman:
-                        ev.Player.ShowHint($"ผลการทดสอบ: {Entrypoint.Instance.Translation.NtfSpyName}\n{target.Nickname}", 5f);
-                        Entrypoint.EventHandlers.TurnSpyRole(target);
-                        target.SessionVariables["ShootedAsSpy"] = true;
-                        target.SessionVariables["Damagable"] = true;
-                        break;
-                }
-            });
-        }
     }
     
     private Player GetPlayerAimedAt(Player player, float maxDistance = 3f)
