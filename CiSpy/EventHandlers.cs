@@ -320,6 +320,7 @@ public class EventHandlers
         player.ArtificialHealth = lastArtificialHealth;
         player.MaxArtificialHealth = lastMaxArtificialHealth;
         player.Stamina = lastStamina;
+        player.IsSpawnProtected = false;
     }
 
     public void OnChangingSpectatedPlayer(ChangingSpectatedPlayerEventArgs ev)
