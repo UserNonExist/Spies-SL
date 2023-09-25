@@ -26,6 +26,8 @@ public class EventHandlers
 {
     public List<CoroutineHandle> CoroutineHandles = new List<CoroutineHandle>();
     public List<Player> SpyList = new List<Player>();
+    public List<Player> NtfSpyList = new List<Player>();
+    public List<Player> ChaosSpyList = new List<Player>();
 
     public void OnRoundRestart()
     {
@@ -36,14 +38,32 @@ public class EventHandlers
         
         CoroutineHandles.Clear();
         SpyList.Clear();
+        NtfSpyList.Clear();
+        ChaosSpyList.Clear();
     }
 
     public void OnLeft(LeftEventArgs ev)
     {
-        if (SpyList.Contains(ev.Player))
+        Timing.CallDelayed(0.5f, () =>
         {
-            SpyList.Remove(ev.Player);
-        }
+            if (SpyList.Contains(ev.Player))
+            {
+                SpyList.Remove(ev.Player);
+                ev.Player.SessionVariables["CancellationToken"] = true;
+            }
+        
+            if (NtfSpyList.Contains(ev.Player))
+            {
+                NtfSpyList.Remove(ev.Player);
+            }
+        
+            if (ChaosSpyList.Contains(ev.Player))
+            {
+                ChaosSpyList.Remove(ev.Player);
+            }
+        });
+        
+        
     }
 
     public void OnChangingRole(ChangingRoleEventArgs ev)
@@ -63,6 +83,14 @@ public class EventHandlers
                 ev.Player.SessionVariables["ShootedAsSpy"] = false;
                 ev.Player.SessionVariables["CancellationToken"] = true;
                 SpyList.Remove(ev.Player);
+                if (NtfSpyList.Contains(ev.Player))
+                {
+                    NtfSpyList.Remove(ev.Player);
+                }
+                if (ChaosSpyList.Contains(ev.Player))
+                {
+                    ChaosSpyList.Remove(ev.Player);
+                }
             }
         }
         catch (Exception e)
@@ -154,22 +182,26 @@ public class EventHandlers
     {
         player.SessionVariables["DoNotUpdate"] = true;
         SpyList.Add(player);
+        ChaosSpyList.Add(player);
         player.SessionVariables["IsSpy"] = true;
         CoroutineHandles.Add(Timing.RunCoroutine(DamagableTimer(player, Entrypoint.Instance.Config.UnDamagableDuration)));
         CoroutineHandles.Add(Timing.RunCoroutine(ShootedSpyTimer(player, Entrypoint.Instance.Config.SpyCheckDuration)));
         player.Role.Set(RoleTypeId.NtfPrivate, RoleSpawnFlags.None);
         player.ShowHint(Entrypoint.Instance.Translation.ChaosSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
+        Log.Debug($"Spawned {player.Nickname} as Chaos Spy");
     }
     
     public void SpawnNtfSpy(Player player)
     {
         player.SessionVariables["DoNotUpdate"] = true;
         SpyList.Add(player);
+        NtfSpyList.Add(player);
         player.SessionVariables["IsSpy"] = true;
         CoroutineHandles.Add(Timing.RunCoroutine(DamagableTimer(player, Entrypoint.Instance.Config.UnDamagableDuration)));
         CoroutineHandles.Add(Timing.RunCoroutine(ShootedSpyTimer(player, Entrypoint.Instance.Config.SpyCheckDuration)));
         player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
         player.ShowHint(Entrypoint.Instance.Translation.MtfSpySpawnMessage, Entrypoint.Instance.Config.SpawnMessageDuration);
+        Log.Debug($"Spawned {player.Nickname} as NTF Spy");
     }
 
     public void OnDying(DyingEventArgs ev)
@@ -212,6 +244,15 @@ public class EventHandlers
         ev.Player.SessionVariables["ShootedAsSpy"] = false;
         ev.Player.SessionVariables["Damagable"] = true;
         SpyList.Remove(ev.Player);
+        
+        if (NtfSpyList.Contains(ev.Player))
+        {
+            NtfSpyList.Remove(ev.Player);
+        }
+        if (ChaosSpyList.Contains(ev.Player))
+        {
+            ChaosSpyList.Remove(ev.Player);
+        }
     }
 
     public void OnShooting(ShootingEventArgs ev)
@@ -239,6 +280,11 @@ public class EventHandlers
     {
         player.SessionVariables["DoNotUpdate"] = true;
         Vector3 lastPos = player.Position;
+        float lastHealth = player.Health;
+        float lastMaxHealth = player.MaxHealth;
+        float lastArtificialHealth = player.ArtificialHealth;
+        float lastMaxArtificialHealth = player.MaxArtificialHealth;
+        float lastStamina = player.Stamina;
         
         
         Quaternion lastRot = player.Rotation;
@@ -268,6 +314,12 @@ public class EventHandlers
                 });
                 break;
         }
+        
+        player.Health = lastHealth;
+        player.MaxHealth = lastMaxHealth;
+        player.ArtificialHealth = lastArtificialHealth;
+        player.MaxArtificialHealth = lastMaxArtificialHealth;
+        player.Stamina = lastStamina;
     }
 
     public void OnChangingSpectatedPlayer(ChangingSpectatedPlayerEventArgs ev)

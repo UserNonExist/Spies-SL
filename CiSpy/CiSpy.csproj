@@ -97,6 +97,7 @@
         </Reference>
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="API\API.cs" />
         <Compile Include="Commands\RevealCommand.cs" />
         <Compile Include="Commands\SpawnSpyCommand.cs" />
         <Compile Include="Commands\SpyListCommand.cs" />

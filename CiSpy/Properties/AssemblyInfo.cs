@@ -5,9 +5,9 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("CiSpy")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("An EXILED plugin designed to add spy in the respawning waves")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("User_NotExist")]
 [assembly: AssemblyProduct("CiSpy")]
 [assembly: AssemblyCopyright("Copyright ©  2023")]
 [assembly: AssemblyTrademark("")]

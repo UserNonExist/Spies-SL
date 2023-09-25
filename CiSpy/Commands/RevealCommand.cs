@@ -31,9 +31,11 @@ public class RevealCommand : ICommand
             switch (player.Role.Type)
             {
                 case RoleTypeId.NtfPrivate:
+                    Entrypoint.EventHandlers.ChaosSpyList.Remove(player);
                     player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
                     break;
                 case RoleTypeId.ChaosRifleman:
+                    Entrypoint.EventHandlers.NtfSpyList.Remove(player);
                     player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
                     break;
             }
@@ -43,15 +45,18 @@ public class RevealCommand : ICommand
             switch (player.Role.Type)
             {
                 case RoleTypeId.ChaosRifleman:
+                    Entrypoint.EventHandlers.ChaosSpyList.Remove(player);
                     player.Role.Set(RoleTypeId.ChaosRifleman, RoleSpawnFlags.None);
                     break;
                 case RoleTypeId.NtfSpecialist:
+                    Entrypoint.EventHandlers.NtfSpyList.Remove(player);
                     player.Role.Set(RoleTypeId.NtfSpecialist, RoleSpawnFlags.None);
                     break;
             }
         }
         
         player.SessionVariables["ShootedAsSpy"] = false;
+        player.SessionVariables["CancellationToken"] = true;
         
         player.IsSpawnProtected = false;
         player.ShowHint(Entrypoint.Instance.Translation.SpyRevealedMessage, 10f);
