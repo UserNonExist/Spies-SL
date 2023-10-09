@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using Exiled.API.Features;
+﻿using Exiled.API.Features;
+using SpiesSl.Enums;
 
-namespace CiSpy.API;
+namespace SpiesSl.API;
 
 public class API
 {
@@ -10,12 +10,9 @@ public class API
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a spy.");
         else
-            Log.Debug($"A plugin is checking if {player.Nickname} is a spy.");
-        
-        
-        if (Entrypoint.EventHandlers.SpyList.Contains(player))
-            return true;
-        return false;
+            Log.Debug($"[SPY] checking if {player.Nickname} is a spy.");
+
+        return Entrypoint.SpyHandlers.IsSpy(player);
     }
     
     public static bool IsNtfSpy(Player player, string pluginName = null)
@@ -23,11 +20,9 @@ public class API
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a NTF spy.");
         else
-            Log.Debug($"A plugin is checking if {player.Nickname} is a NTF spy.");
-        
-        if (Entrypoint.EventHandlers.NtfSpyList.Contains(player))
-            return true;
-        return false;
+            Log.Debug($"[SPY] checking if {player.Nickname} is a NTF spy.");
+
+        return Entrypoint.SpyHandlers.GetSpyType(player) == SpyType.NtfSpy;
     }
     
     public static bool IsChaosSpy(Player player, string pluginName = null)
@@ -35,21 +30,19 @@ public class API
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a Chaos spy.");
         else
-            Log.Debug($"A plugin is checking if {player.Nickname} is a Chaos spy.");
-        
-        if (Entrypoint.EventHandlers.ChaosSpyList.Contains(player))
-            return true;
-        return false;
-    }
+            Log.Debug($"[SPY] checking if {player.Nickname} is a Chaos spy.");
 
+        return Entrypoint.SpyHandlers.GetSpyType(player) == SpyType.ChaosSpy;
+    }
+    
     public static void SpawnNtfSpy(Player player, string pluginName = null)
     {
         if (pluginName != null)
             Log.Debug($"{pluginName} is spawning {player.Nickname} as a NTF spy.");
         else
-            Log.Debug($"A plugin is spawning {player.Nickname} as a NTF spy.");
+            Log.Debug($"[SPY] spawning {player.Nickname} as a NTF spy.");
         
-        Entrypoint.EventHandlers.SpawnNtfSpy(player);
+        Entrypoint.SpyHandlers.SpawnNtfSpy(player);
     }
     
     public static void SpawnChaosSpy(Player player, string pluginName = null)
@@ -57,8 +50,8 @@ public class API
         if (pluginName != null)
             Log.Debug($"{pluginName} is spawning {player.Nickname} as a Chaos spy.");
         else
-            Log.Debug($"A plugin is spawning {player.Nickname} as a Chaos spy.");
+            Log.Debug($"[SPY] spawning {player.Nickname} as a Chaos spy.");
         
-        Entrypoint.EventHandlers.SpawnChaosSpy(player);
+        Entrypoint.SpyHandlers.SpawnChaosSpy(player);
     }
 }
