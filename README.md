@@ -1,6 +1,5 @@
 # Spies-SL
 An EXILED plugin that add spies to respawning waves.
-Supports [PlayerReplace](https://github.com/DatPanDat/PlayerReplace).
 
 # Command
 | Command       | Description   | Permission Node|
