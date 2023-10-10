@@ -235,15 +235,15 @@ public class EventHandlers
     {
         if (Entrypoint.SpyHandlers.IsSpy(ev.Player))
         {
+            Entrypoint.SpyHandlers.Spies.Remove(ev.Player);
+            
             switch (Entrypoint.SpyHandlers.GetSpyType(ev.Player))
             {
                 case SpyType.ChaosSpy:
-                    Entrypoint.SpyHandlers.Spies.Remove(ev.Player);
                     ev.Player.Role.Set(RoleTypeId.ChaosConscript, SpawnReason.None, RoleSpawnFlags.None);
                     ev.Player.Kill(ev.DamageHandler);
                     break;
                 case SpyType.NtfSpy:
-                    Entrypoint.SpyHandlers.Spies.Remove(ev.Player);
                     ev.Player.Role.Set(RoleTypeId.NtfSpecialist, SpawnReason.None, RoleSpawnFlags.None);
                     ev.Player.Kill(ev.DamageHandler);
                     break;
@@ -256,21 +256,36 @@ public class EventHandlers
         if (ev.Attacker == null)
             return;
         
-        if (ev.Attacker == ev.Player)
+        if (ev.DamageHandler.IsSuicide)
             return;
         
-        if (ev.Attacker.Role.Side == Side.Scp || ev.Player.Role.Side == Side.Scp)
+        if (ev.Attacker.IsScp || ev.Player.IsScp)
             return;
         
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Player))
+        bool attackerIsSpy = Entrypoint.SpyHandlers.IsSpy(ev.Attacker);
+        bool victimIsSpy = Entrypoint.SpyHandlers.IsSpy(ev.Player);
+        SpyType? victimSpyType = Entrypoint.SpyHandlers.GetSpyType(ev.Player);
+        bool attackerVulnerable = ev.Attacker.SessionVariables["Vulnerable"] is bool vulnerable && vulnerable;
+        bool victimVulnerable = ev.Player.SessionVariables["Vulnerable"] is bool vulnerable2 && vulnerable2;
+        bool victimUndetectable = ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable;
+        
+        if (attackerIsSpy && !attackerVulnerable)
         {
-            switch (Entrypoint.SpyHandlers.GetSpyType(ev.Player))
+            ev.Attacker.SessionVariables["Vulnerable"] = true;
+            return;
+        }
+        
+        if (victimIsSpy && !victimVulnerable)
+        {
+            ev.IsAllowed = false;
+            return;
+        }
+
+        if (victimIsSpy && victimUndetectable)
+        {
+            switch (victimSpyType)
             {
                 case SpyType.ChaosSpy:
-                    if ((ev.Player.SessionVariables["Vulnerable"] is bool vulnerable1 && !vulnerable1))
-                    {
-                        ev.IsAllowed = false;
-                    }
                     if (ev.Attacker.Role.Side == Side.ChaosInsurgency)
                     {
                         ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage);
@@ -278,10 +293,6 @@ public class EventHandlers
                     }
                     break;
                 case SpyType.NtfSpy:
-                    if ((ev.Player.SessionVariables["Vulnerable"] is bool vulnerable2 && !vulnerable2))
-                    {
-                        ev.IsAllowed = false;
-                    }
                     if (ev.Attacker.Role.Side == Side.Mtf)
                     {
                         ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage);
@@ -289,35 +300,7 @@ public class EventHandlers
                     }
                     break;
             }
-        }
-        
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Attacker))
-        {
-            switch (Entrypoint.SpyHandlers.GetSpyType(ev.Attacker))
-            {
-                case SpyType.ChaosSpy:
-                    if (ev.Attacker.SessionVariables["Vulnerable"] is bool vulnerable1 && !vulnerable1)
-                    {
-                        ev.Attacker.SessionVariables["Vulnerable"] = true;
-                    }
-                    if (ev.Player.Role.Side == Side.ChaosInsurgency || Entrypoint.SpyHandlers.GetSpyType(ev.Player) == SpyType.ChaosSpy)
-                    {
-                        ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage);
-                        ev.IsAllowed = false;
-                    }
-                    break;
-                case SpyType.NtfSpy:
-                    if (ev.Attacker.SessionVariables["Vulnerable"] is bool vulnerable2 && !vulnerable2)
-                    {
-                        ev.Attacker.SessionVariables["Vulnerable"] = true;
-                    }
-                    if (ev.Player.Role.Side == Side.ChaosInsurgency || Entrypoint.SpyHandlers.GetSpyType(ev.Player) == SpyType.ChaosSpy)
-                    {
-                        ev.Attacker.ShowHint(Entrypoint.Instance.Translation.FriendlyHurtSpyMessage);
-                        ev.IsAllowed = false;
-                    }
-                    break;
-            }
+            return;
         }
     }
 
@@ -326,7 +309,7 @@ public class EventHandlers
         if (ev.Player == null)
             return;
         
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && (ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable))
+        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable)
         {
             ev.Player.SessionVariables["Undetectable"] = false;
             Entrypoint.SpyHandlers.TurnSpyRole(ev.Player);

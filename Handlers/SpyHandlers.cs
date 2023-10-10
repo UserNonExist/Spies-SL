@@ -1,15 +1,13 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using Exiled.API.Enums;
 using Exiled.API.Extensions;
 using Exiled.API.Features;
 using Exiled.API.Features.Items;
-using Hints;
 using MEC;
 using PlayerRoles;
 using SpiesSl.Enums;
 using UnityEngine;
-using Utf8Json.Internal.DoubleConversion;
-
 namespace SpiesSl.Handlers;
 
 public class SpyHandlers
@@ -20,12 +18,32 @@ public class SpyHandlers
     
     public bool IsSpy(Player player)
     {
-        return Spies.ContainsKey(player);
+        try
+        {
+            return Spies.ContainsKey(player);
+        }
+        catch (Exception)
+        {
+            return false;
+            throw;
+        }
     }
     
-    public SpyType GetSpyType(Player player)
+    public SpyType? GetSpyType(Player player)
     {
-        return Spies[player];
+        try
+        {
+            if (!IsSpy(player))
+            {
+                return null;
+            }
+            return Spies[player];
+        }
+        catch (Exception)
+        {
+            return null;
+            throw;
+        }
     }
     
     public void SpawnChaosSpy(Player player, bool multiple = false)
