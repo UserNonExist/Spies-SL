@@ -3,6 +3,7 @@ using CommandSystem;
 using Exiled.API.Features;
 using Exiled.Permissions.Extensions;
 using SpiesSl.Enums;
+using SpiesSl.Handlers;
 
 namespace SpiesSl.Commands;
 
@@ -34,6 +35,12 @@ public class SpawnSpyCommand : ICommand
         if (player == null)
         {
             response = "Player not found.";
+            return false;
+        }
+        
+        if (Entrypoint.SpyHandlers.IsSpy(player))
+        {
+            response = "Player is already a spy.";
             return false;
         }
         

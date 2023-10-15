@@ -21,12 +21,10 @@ public class ForceSpawnCommand : ICommand
             response = "Spy will NOT guaranteed to spawn in the next wave.";
             return true;
         }
-        else
-        {
-            Entrypoint.EventHandlers.ForceSpawning = true;
-            response = "Spy will now GUARANTEED to spawn in the next wave.";
-            return true;
-        }
+        
+        Entrypoint.EventHandlers.ForceSpawning = true;
+        response = "Spy will now GUARANTEED to spawn in the next wave.";
+        return true;
     }
 
     public string Command { get; } = "forcespawnspy";

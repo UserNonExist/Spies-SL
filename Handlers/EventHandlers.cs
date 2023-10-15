@@ -269,19 +269,7 @@ public class EventHandlers
         bool victimVulnerable = ev.Player.SessionVariables["Vulnerable"] is bool vulnerable2 && vulnerable2;
         bool victimUndetectable = ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable;
         
-        if (attackerIsSpy && !attackerVulnerable)
-        {
-            ev.Attacker.SessionVariables["Vulnerable"] = true;
-            return;
-        }
-        
-        if (victimIsSpy && !victimVulnerable)
-        {
-            ev.IsAllowed = false;
-            return;
-        }
-
-        if (victimIsSpy && victimUndetectable)
+        if (victimIsSpy && victimUndetectable && victimSpyType != null)
         {
             switch (victimSpyType)
             {
@@ -300,6 +288,19 @@ public class EventHandlers
                     }
                     break;
             }
+            return;
+        }
+        
+        
+        if (attackerIsSpy && !attackerVulnerable)
+        {
+            ev.Attacker.SessionVariables["Vulnerable"] = true;
+            return;
+        }
+        
+        if (victimIsSpy && !victimVulnerable)
+        {
+            ev.IsAllowed = false;
             return;
         }
     }

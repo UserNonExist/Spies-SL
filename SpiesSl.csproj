@@ -99,6 +99,7 @@
         <Compile Include="Configs.cs" />
         <Compile Include="Entrypoint.cs" />
         <Compile Include="Enums\ScaleType.cs" />
+        <Compile Include="Enums\SpyFlag.cs" />
         <Compile Include="Enums\SpyType.cs" />
         <Compile Include="Handlers\EventHandlers.cs" />
         <Compile Include="Handlers\SpyHandlers.cs" />

@@ -18,6 +18,9 @@ public class SpyHandlers
     
     public bool IsSpy(Player player)
     {
+        if (player == null)
+            return false;
+        
         try
         {
             return Spies.ContainsKey(player);
@@ -48,9 +51,9 @@ public class SpyHandlers
     
     public void SpawnChaosSpy(Player player, bool multiple = false)
     {
-        Spies.Add(player, SpyType.ChaosSpy);
-        
         player.Role.Set(RoleTypeId.NtfPrivate, SpawnReason.None, RoleSpawnFlags.None);
+        
+        Spies.Add(player, SpyType.ChaosSpy);
         
         CoroutineHandles.Add(Timing.RunCoroutine(UndetectableCoroutine(player)));
         CoroutineHandles.Add(Timing.RunCoroutine(VulnerableCoroutine(player)));
@@ -65,9 +68,9 @@ public class SpyHandlers
     
     public void SpawnNtfSpy(Player player, bool multiple = false)
     {
-        Spies.Add(player, SpyType.NtfSpy);
-        
         player.Role.Set(RoleTypeId.ChaosRifleman, SpawnReason.None, RoleSpawnFlags.None);
+        
+        Spies.Add(player, SpyType.NtfSpy);
         
         CoroutineHandles.Add(Timing.RunCoroutine(UndetectableCoroutine(player)));
         CoroutineHandles.Add(Timing.RunCoroutine(VulnerableCoroutine(player)));
