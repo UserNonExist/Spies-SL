@@ -16,10 +16,11 @@ public class LJ61E : CustomItem
     public override ItemType Type { get; set; } = ItemType.Adrenaline;
     public override uint Id { get; set; } = 61;
     public override string Name { get; set; } = "LJ-61-E";
-    public override string Description { get; set; } = "An electronic injection that can be used to check whether a person is a spy or not.";
+    public override string Description { get; set; } = "An electronic injection that can be used to check player loyalty.";
     public override float Weight { get; set; } = 1f;
     public string NoTargetFound { get; set; } = "No target found";
     public string ResultMessage { get; set; } = "Scan result: %result%\n%player%";
+    public string TargetMessage { get; set; } = "You have been scanned by %player%";
     public string NotSpyResult { get; set; } = "Not a spy";
     public override SpawnProperties SpawnProperties { get; set; } = new SpawnProperties
     {
@@ -99,6 +100,8 @@ public class LJ61E : CustomItem
             ev.IsAllowed = false;
             return;
         }
+        
+        target.ShowHint(TargetMessage.Replace("%player%", ev.Player.Nickname), 5f);
         
         Timing.CallDelayed(1.5f, () =>
         {

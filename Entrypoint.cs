@@ -14,8 +14,8 @@ public class Entrypoint : Plugin<Configs, Translations>
 {
     public override string Author { get; } = "User_NotExist";
     public override string Name { get; } = "SpiesSl";
-    public override Version Version { get; } = new Version(2, 1, 2);
-    public override Version RequiredExiledVersion { get; } = new Version(8, 2, 1);
+    public override Version Version { get; } = new Version(2, 2, 0);
+    public override Version RequiredExiledVersion { get; } = new Version(8, 7, 0);
     
     public static Entrypoint Instance { get; private set; }
     public static EventHandlers EventHandlers;
