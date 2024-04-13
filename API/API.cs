@@ -7,6 +7,11 @@ public class API
 {
     public static bool IsSpy(Player player, string pluginName = null)
     {
+        string callingAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        
+        if (callingAssembly != "SpiesSl")
+            pluginName = callingAssembly;
+        
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a spy.");
         else
@@ -17,6 +22,11 @@ public class API
     
     public static bool IsNtfSpy(Player player, string pluginName = null)
     {
+        string callingAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        
+        if (callingAssembly != "SpiesSl")
+            pluginName = callingAssembly;
+        
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a NTF spy.");
         else
@@ -27,6 +37,11 @@ public class API
     
     public static bool IsChaosSpy(Player player, string pluginName = null)
     {
+        string callingAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        
+        if (callingAssembly != "SpiesSl")
+            pluginName = callingAssembly;
+
         if (pluginName != null)
             Log.Debug($"{pluginName} is checking if {player.Nickname} is a Chaos spy.");
         else
@@ -37,6 +52,11 @@ public class API
     
     public static void SpawnNtfSpy(Player player, string pluginName = null)
     {
+        string callingAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        
+        if (callingAssembly != "SpiesSl")
+            pluginName = callingAssembly;
+
         if (pluginName != null)
             Log.Debug($"{pluginName} is spawning {player.Nickname} as a NTF spy.");
         else
@@ -47,6 +67,11 @@ public class API
     
     public static void SpawnChaosSpy(Player player, string pluginName = null)
     {
+        string callingAssembly = System.Reflection.Assembly.GetCallingAssembly().GetName().Name;
+        
+        if (callingAssembly != "SpiesSl")
+            pluginName = callingAssembly;
+
         if (pluginName != null)
             Log.Debug($"{pluginName} is spawning {player.Nickname} as a Chaos spy.");
         else

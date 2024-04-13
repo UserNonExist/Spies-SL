@@ -124,6 +124,12 @@ public class EventHandlers
                     break;
             }
             
+            if (Entrypoint.Instance.Config.MinimumLowRankPlayer > lowRankedPlayers.Count)
+            {
+                Log.Debug("Not enough low ranked players, returning");
+                return;
+            }
+            
             if (lowRankedPlayers.Count < spySpawning)
             {
                 Log.Debug("Not enough low ranked players, attempting to spawn only 1");
@@ -225,6 +231,16 @@ public class EventHandlers
     
     public void OnChangingRole(ChangingRoleEventArgs ev)
     {
+        if (!ev.Player.SessionVariables.ContainsKey("Vulnerable"))
+        {
+            ev.Player.SessionVariables["Vulnerable"] = true;
+        }
+        
+        if (!ev.Player.SessionVariables.ContainsKey("Undetectable"))
+        {
+            ev.Player.SessionVariables["Undetectable"] = false;
+        }
+        
         if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && ev.Reason == SpawnReason.ForceClass)
         {
             Entrypoint.SpyHandlers.Spies.Remove(ev.Player);
@@ -235,9 +251,11 @@ public class EventHandlers
     {
         if (Entrypoint.SpyHandlers.IsSpy(ev.Player))
         {
+            SpyType? spyType = Entrypoint.SpyHandlers.GetSpyType(ev.Player);
+            
             Entrypoint.SpyHandlers.Spies.Remove(ev.Player);
             
-            switch (Entrypoint.SpyHandlers.GetSpyType(ev.Player))
+            switch (spyType)
             {
                 case SpyType.ChaosSpy:
                     ev.Player.Role.Set(RoleTypeId.ChaosConscript, SpawnReason.None, RoleSpawnFlags.None);
@@ -265,9 +283,9 @@ public class EventHandlers
         bool attackerIsSpy = Entrypoint.SpyHandlers.IsSpy(ev.Attacker);
         bool victimIsSpy = Entrypoint.SpyHandlers.IsSpy(ev.Player);
         SpyType? victimSpyType = Entrypoint.SpyHandlers.GetSpyType(ev.Player);
-        bool attackerVulnerable = ev.Attacker.SessionVariables["Vulnerable"] is bool vulnerable && vulnerable;
-        bool victimVulnerable = ev.Player.SessionVariables["Vulnerable"] is bool vulnerable2 && vulnerable2;
-        bool victimUndetectable = ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable;
+        bool attackerVulnerable = (bool)ev.Attacker.SessionVariables["Vulnerable"];
+        bool victimVulnerable = (bool)ev.Player.SessionVariables["Vulnerable"];
+        bool victimUndetectable = (bool)ev.Player.SessionVariables["Undetectable"];
         
         if (victimIsSpy && victimUndetectable && victimSpyType != null)
         {
@@ -310,10 +328,9 @@ public class EventHandlers
         if (ev.Player == null)
             return;
         
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable)
+        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && (bool)ev.Player.SessionVariables["Undetectable"])
         {
             ev.Player.SessionVariables["Undetectable"] = false;
-            Entrypoint.SpyHandlers.TurnSpyRole(ev.Player);
         }
     }
 
@@ -322,14 +339,13 @@ public class EventHandlers
         if (ev.Player == null)
             return;
         
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && (ev.Player.SessionVariables["Undetectable"] is bool undetectable && undetectable))
+        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && (bool)ev.Player.SessionVariables["Undetectable"])
         {
             ev.Player.SessionVariables["Undetectable"] = false;
-            Entrypoint.SpyHandlers.TurnSpyRole(ev.Player);
-            Timing.CallDelayed(0.5f, () => ev.Projectile.PreviousOwner = ev.Player);
+            Timing.CallDelayed(1.5f, () => ev.Projectile.PreviousOwner = ev.Player);
         }
         
-        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && (ev.Player.SessionVariables["Vulnerable"] is bool vulnerable && !vulnerable))
+        if (Entrypoint.SpyHandlers.IsSpy(ev.Player) && !(bool)ev.Player.SessionVariables["Vulnerable"])
         {
             ev.Player.SessionVariables["Vulnerable"] = true;
         }

@@ -55,7 +55,7 @@ public class SpyHandlers
         
         Spies.Add(player, SpyType.ChaosSpy);
         
-        CoroutineHandles.Add(Timing.RunCoroutine(OnTimerCoroutine(player)));
+        CoroutineHandles.Add(Timing.RunCoroutine(TimerCoroutine(player)));
         
         if (!multiple)
         {
@@ -71,7 +71,7 @@ public class SpyHandlers
         
         Spies.Add(player, SpyType.NtfSpy);
         
-        CoroutineHandles.Add(Timing.RunCoroutine(OnTimerCoroutine(player)));
+        CoroutineHandles.Add(Timing.RunCoroutine(TimerCoroutine(player)));
 
         if (!multiple)
         {
@@ -130,14 +130,15 @@ public class SpyHandlers
                 break;
         }
         
-        Timing.CallDelayed(0.6f, () =>
+        Timing.CallDelayed(0.7f, () =>
         {
             player.CurrentItem = lastItem;
             player.IsSpawnProtected = false;
+            CoroutineHandles.Add(Timing.RunCoroutine(AppearanceCoroutine(player)));
         });
     }
 
-    public IEnumerator<float> OnTimerCoroutine(Player player)
+    public IEnumerator<float> TimerCoroutine(Player player)
     {
         player.SessionVariables["Undetectable"] = true;
         player.SessionVariables["Vulnerable"] = false;
@@ -145,15 +146,18 @@ public class SpyHandlers
         int undetectTimer = Entrypoint.Instance.Config.UndetectableDuration;
         int vulnerableTimer = Entrypoint.Instance.Config.InvulnerableDuration;
         
+        
         int timer = undetectTimer + vulnerableTimer;
         
         Log.Debug($"[SPY] {player.Nickname} is now undetectable for {undetectTimer} seconds and vulnerable for {vulnerableTimer} seconds. Total time: {timer} seconds.");
         
-        float msgDuration = timer - Entrypoint.Instance.Config.SpawnMessageDuration;
+        int msgDuration = timer - Entrypoint.Instance.Config.SpawnMessageDuration;
         string stringBuilder = "";
         bool undetectedMsg = false;
         bool vulnerableMsg = false;
-        yield return Timing.WaitForSeconds(1f);
+        
+        int undetectTimerConst = undetectTimer - Entrypoint.Instance.Config.SpawnMessageDuration;
+        int vulnerableTimerConst = vulnerableTimer - Entrypoint.Instance.Config.SpawnMessageDuration;
 
         while (timer > 0)
         {
@@ -206,12 +210,13 @@ public class SpyHandlers
             
             if (timer < msgDuration)
             {
-                stringBuilder = "";
+                stringBuilder = "\n\n\n\n\n\n\n\n\n\n\n\n\n\n<size=72%><align=right>";
                 if (!undetectedMsg)
-                    stringBuilder += Entrypoint.Instance.Translation.UndetectableMessage.Replace("%time%", undetectTimer.ToString()) + "\n";
+                    stringBuilder += Entrypoint.Instance.Translation.UndetectableMessage.Replace("%time%", ObscureTimer(undetectTimerConst, undetectTimer)) + "\n";
                 if (!vulnerableMsg)
-                    stringBuilder += Entrypoint.Instance.Translation.InvulnerableMessage.Replace("%time%", vulnerableTimer.ToString());
+                    stringBuilder += Entrypoint.Instance.Translation.InvulnerableMessage.Replace("%time%", ObscureTimer(vulnerableTimerConst, vulnerableTimer));
                     
+                stringBuilder += "</align></size>";
                 player.ShowHint(stringBuilder, 1f);
             }
             
@@ -229,5 +234,55 @@ public class SpyHandlers
             player.SessionVariables["Vulnerable"] = true;
             player.Broadcast(9, Entrypoint.Instance.Translation.VulnerableMessage);
         }
+    }
+    
+    public IEnumerator<float> AppearanceCoroutine(Player player)
+    {
+        for (;;)
+        {
+            yield return Timing.WaitForSeconds(20);
+            
+            Log.Debug($"[SPY] Changing appearance of {player.Nickname}.");
+            
+            if (!IsSpy(player) || player.Role == RoleTypeId.Spectator || Round.IsEnded)
+            {
+                yield break;
+            }
+
+            if (GetSpyType(player) == SpyType.ChaosSpy)
+            {
+                player.ChangeAppearance(RoleTypeId.NtfPrivate);
+            }
+            else if (GetSpyType(player) == SpyType.NtfSpy)
+            {
+                player.ChangeAppearance(RoleTypeId.ChaosRifleman);
+            }
+        }
+    }
+
+    public string ObscureTimer(int defaultTimer, int currentTime)
+    {
+        string timer = "";
+        
+        int percentage = (int) Math.Round((double) currentTime / defaultTimer * 100);
+        
+        if (percentage > 50)
+            timer += "<color=green>";
+        else if (percentage > 25)
+            timer += "<color=orange>";
+        else
+            timer += "<color=red>";
+        
+        for (int i = 0; i < percentage / 10; i++)
+        {
+            timer += "█";
+        }
+        for (int i = 0; i < 10 - percentage / 10; i++)
+        {
+            timer += "░";
+        }
+        timer += "</color>";
+        
+        return timer;
     }
 }

@@ -9,7 +9,7 @@ public class Translations : ITranslation
     public string MultipleSpyAdditionalMessage { get; set; } = "This time, %player% will be joining you.";
     public string UndetectableMessage { get; set; } = "Spycheck Protection: %time% second(s)";
     public string InvulnerableMessage { get; set; } = "Damage Protection: %time% second(s)";
-    public string DetectableMessage { get; set; } = "Other team still see you as normal, but they can now see hitmark when they shoot you.";
+    public string DetectableMessage { get; set; } = "This is an expected behaivor.\\nOther team still see you as normal, but they can now see hitmark when they shoot you.";
     public string VulnerableMessage { get; set; } = "The other team can now damage/kill you.";
     public string SpyRevealedMessage { get; set; } = "You have revealed your role.";
     public string CannotCuffMessage { get; set; } = "You cannot cuff while you are a spy.";

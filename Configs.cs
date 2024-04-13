@@ -12,6 +12,8 @@ public class Configs : IConfig
     [Description("Whether or not the plugin is in debug mode.")]
     public bool Debug { get; set; } = false;
     
+    [Description("Minimum number of low rank player in the spawnwave for spy to spawn.")]
+    public int MinimumLowRankPlayer { get; set; } = 3;
     [Description("The base chance for a spy to spawn in each spawnwave. -1 to disable spy naturally spawning.")]
     public int BaseSpawnChance { get; set; } = 30;
     [Description("Maximum cap for the chance for the spy to spawn in a spawnwave.")]
@@ -31,7 +33,7 @@ public class Configs : IConfig
     public int MinimumPlayerForSecondSpy { get; set; } = 10;
     
     [Description("Duration of the spawn message.")]
-    public float SpawnMessageDuration { get; set; } = 20f;
+    public int SpawnMessageDuration { get; set; } = 20;
     [Description("Duration of spy being undetectable at all. (shooting spy will not show hit mark or damage, timer starts when spawned)")]
     public int UndetectableDuration { get; set; } = 60;
     [Description("Duration of spy being invulnerable to other team damage. (shooting spy will show hit mark, timer starts when spawned)")]
